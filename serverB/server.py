@@ -3,12 +3,11 @@ import os
 import hashlib
 
 HOST = "127.0.0.1"
-PORT = 5001 
+PORT = 5001   # change to 5001 for serverB
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FILES_DIR = os.path.join(BASE_DIR, "files")
 
-# Build a map: sha256 hash (hex) -> file path
 hash_to_file = {}
 
 for fname in os.listdir(FILES_DIR):
@@ -22,50 +21,39 @@ for fname in os.listdir(FILES_DIR):
     print(f"Indexed file {fname} with hash {h}")
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 s.bind((HOST, PORT))
-s.listen(1)
+s.listen(5)
 
-print(f"File server listening on {HOST}:{PORT}")
+print(f"Server listening on {HOST}:{PORT}")
 
 while True:
     conn, addr = s.accept()
-    print(f"Connection from {addr}")
+    print("Connection from:", addr)
 
     try:
-        # Receive hash from client
         data = conn.recv(1024)
         if not data:
             conn.close()
             continue
 
         msg = data.decode().strip()
-        print("Server received hash:", msg)
+        print("Received hash:", msg)
 
         if msg in hash_to_file:
             conn.send(b"gotfile")
-            # Wait for client ack
             ack = conn.recv(1024)
-            if not ack:
-                conn.close()
-                continue
-            print("Client reply after gotfile:", ack.decode().strip())
 
-            # Send file bytes
-            fpath = hash_to_file[msg]
-            with open(fpath, "rb") as f:
+            with open(hash_to_file[msg], "rb") as f:
                 while True:
                     chunk = f.read(4096)
                     if not chunk:
                         break
                     conn.sendall(chunk)
-            print("Finished sending file for hash", msg)
+
+            print("Finished sending file.")
+
         else:
             conn.send(b"nofile")
-            ack = conn.recv(1024)
-            if ack:
-                print("Client reply after nofile:", ack.decode().strip())
-            print("No file for hash", msg)
 
     finally:
         conn.close()
