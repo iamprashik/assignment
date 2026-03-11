@@ -1,8 +1,8 @@
-📦 Distributed File Retrieval System (Assignment 2 – Tracker Version)
+📦 Distributed File Retrieval System (Tracker Version)
 A lightweight distributed file retrieval system inspired by BitTorrent.
-This version extends Assignment 1 by introducing a tracker server, which coordinates clients and file servers. The client no longer knows where file chunks are stored — instead, it asks the tracker, which returns the correct server address.
+This version extends a tracker server, which coordinates clients and file servers. The client no longer knows where file chunks are stored — instead, it asks the tracker, which returns the correct server address.
 
-This architecture is more realistic, scalable, and modular than the direct client‑server model used in Assignment 1.
+This architecture is more realistic, scalable, and modular than the direct client‑server model used previously.
 
 🚀 Overview
 The system stores a PDF file split into two binary chunks:
@@ -13,8 +13,8 @@ Server B stores chunk 2
 
 Each chunk is identified by its SHA‑256 hash.
 
-In Assignment 1, the client connected directly to Server A and Server B.
-In Assignment 2, the client connects only to the tracker, which tells the client where each chunk is located.
+Before, the client connected directly to Server A and Server B.
+Now, the client connects only to the tracker, which tells the client where each chunk is located.
 
 This mirrors how BitTorrent trackers coordinate peers.
 
@@ -134,15 +134,14 @@ Server response: gotfile
 Received 9524 bytes
 
 Reassembled file written to output.pdf
-🆚 How Assignment 2 Improves Assignment 1
-Feature	Assignment 1	Assignment 2
+Feature	OLD PART	NEW PART
 Client knows server IPs	✔ Yes	❌ No
 Tracker exists	❌ No	✔ Yes
 Client → Server directly	✔ Yes	❌ No
 Client → Tracker → Server	❌ No	✔ Yes
 Scalable architecture	❌ Limited	✔ Much better
 Realistic distributed design	❌ No	✔ Yes
-Assignment 2 is a strict upgrade of Assignment 1.
+This model is a strict upgrade of the old one.
 It keeps all functionality but adds a tracker, making the system more modular and closer to real distributed systems.
 
 🎯 Learning Outcomes
