@@ -1,158 +1,328 @@
-📦 Distributed File Retrieval System (Tracker Version)
-A lightweight distributed file retrieval system inspired by BitTorrent.
-This version extends a tracker server, which coordinates clients and file servers. The client no longer knows where file chunks are stored — instead, it asks the tracker, which returns the correct server address.
+# 🌐 Distributed File Retrieval System
 
-This architecture is more realistic, scalable, and modular than the direct client‑server model used previously.
+A Python-based **distributed file retrieval system** that demonstrates how a client can discover, retrieve, and reconstruct file chunks stored across multiple servers.
 
-🚀 Overview
-The system stores a PDF file split into two binary chunks:
+The system uses a central **tracker** to map SHA-256 content hashes to server locations. The client queries the tracker, retrieves each chunk from the appropriate server, and combines the downloaded binary data to reconstruct the original file.
 
-Server A stores chunk 1
+---
 
-Server B stores chunk 2
+## 📸 Demo
 
-Each chunk is identified by its SHA‑256 hash.
+### 1. Distributed Chunk Discovery & Transfer
 
-Before, the client connected directly to Server A and Server B.
-Now, the client connects only to the tracker, which tells the client where each chunk is located.
+![Distributed System Running](screenshots/system-running.png)
 
-This mirrors how BitTorrent trackers coordinate peers.
+The tracker resolves each requested SHA-256 hash to the server storing that chunk. Server A and Server B then independently serve their respective pieces of the file.
 
-🧠 Architecture
-Code
-          ┌──────────────┐
-          │    Tracker    │
-          │ (hash lookup) │
-          └───────┬──────┘
-                  │
-     ┌────────────┴────────────┐
-     │                           │
-┌───────────┐             ┌───────────┐
-│  Server A │             │  Server B │
-│ chunk 1   │             │ chunk 2   │
-└─────┬─────┘             └─────┬─────┘
-      │                           │
-      └────────────┬──────────────┘
-                   │
-             ┌──────────┐
-             │  Client   │
-             │ (rebuild) │
-             └──────────┘
-🔑 Key Concepts
-✔ Content‑Addressable Storage
-Servers identify files by hash, not by name.
+### 2. Client Retrieval & Reconstruction
 
-✔ Tracker‑Based Lookup
-The client sends a hash to the tracker.
-The tracker replies with the correct server’s IP and port.
+![Client File Retrieval](screenshots/client-retrieval.png)
 
-✔ Distributed File Sharding
-Each server stores only part of the file.
+The client discovers both chunk locations, downloads each **1,522-byte chunk** from separate servers, and combines them in the correct order.
 
-✔ Binary File Transfer
-The client downloads raw bytes and reconstructs the original PDF.
+### 3. Reconstructed Output
 
-📂 Project Structure
-Code
-assignment/
+![Reconstructed File](screenshots/reconstructed-file.png)
+
+The resulting PDF is successfully reconstructed from the two independently retrieved binary chunks.
+
+---
+
+## ✨ Features
+
+* 🌐 Distributed client-server architecture
+* 🔎 Tracker-based chunk discovery
+* #️⃣ SHA-256 content-based chunk identification
+* 🖥️ Multiple independent file servers
+* 📡 TCP socket communication
+* 📦 Binary file transfer over the network
+* 🧩 Multi-chunk file reconstruction
+* 📍 Dynamic server lookup through the tracker
+* 🐍 Built entirely with Python's standard library
+
+---
+
+## 🏗️ Architecture
+
+The system consists of four components:
+
+```text
+                         ┌───────────────────┐
+                         │      TRACKER      │
+                         │   127.0.0.1:6000  │
+                         │                   │
+                         │ SHA-256 → Server  │
+                         └─────────┬─────────┘
+                                   │
+                         Chunk location lookup
+                                   │
+                                   ▼
+                         ┌───────────────────┐
+                         │      CLIENT       │
+                         │                   │
+                         │ Discover          │
+                         │ Download          │
+                         │ Reconstruct       │
+                         └──────┬─────┬──────┘
+                                │     │
+                 Download       │     │       Download
+                  Chunk 1       │     │        Chunk 2
+                                │     │
+                    ┌───────────┘     └───────────┐
+                    ▼                             ▼
+           ┌─────────────────┐           ┌─────────────────┐
+           │    SERVER A     │           │    SERVER B     │
+           │ 127.0.0.1:5000  │           │ 127.0.0.1:5001  │
+           │                 │           │                 │
+           │     Chunk 1     │           │     Chunk 2     │
+           └─────────────────┘           └─────────────────┘
+```
+
+The tracker does not transfer the actual file data. Its job is to tell the client **where each requested chunk is located**.
+
+The client then connects directly to the corresponding servers to retrieve the binary chunks.
+
+---
+
+## 🔄 How It Works
+
+### 1. Server Indexing
+
+When Server A and Server B start, each server scans its local `files` directory.
+
+The server calculates a **SHA-256 hash** for every available file chunk and stores a mapping between the hash and its local file path.
+
+```text
+SHA-256 Hash → Local Chunk
+```
+
+This allows chunks to be requested by their content hash instead of only by filename.
+
+### 2. Tracker Lookup
+
+The client knows the SHA-256 hashes of the chunks required to reconstruct the file.
+
+For each chunk, it sends the hash to the tracker:
+
+```text
+Client → Tracker
+
+"Where is this SHA-256 hash stored?"
+```
+
+The tracker looks up the hash and responds with the appropriate server address:
+
+```text
+Chunk 1 → 127.0.0.1:5000
+Chunk 2 → 127.0.0.1:5001
+```
+
+### 3. Distributed Download
+
+After receiving the server location, the client connects directly to that server and requests the chunk using its SHA-256 hash.
+
+In the current demo:
+
+```text
+Server A → distributed-demo.part1.bin
+Server B → distributed-demo.part2.bin
+```
+
+Each chunk contains **1,522 bytes** of the original PDF.
+
+### 4. File Reconstruction
+
+After both chunks are downloaded, the client combines them in their original order:
+
+```text
+Chunk 1 + Chunk 2
+        ↓
+reconstructed-file.pdf
+```
+
+The resulting file is a valid reconstruction of the original PDF.
+
+---
+
+## 🛠️ Technologies
+
+| Technology      | Purpose                                               |
+| --------------- | ----------------------------------------------------- |
+| **Python**      | Core application logic                                |
+| **TCP Sockets** | Communication between distributed components          |
+| **SHA-256**     | Content-based chunk identification                    |
+| **Hashlib**     | Generating SHA-256 hashes                             |
+| **Binary I/O**  | Reading, transferring, and reconstructing file chunks |
+| **TCP/IP**      | Client, tracker, and server communication             |
+
+The project uses only Python's standard library and requires no external packages.
+
+---
+
+## 📁 Project Structure
+
+```text
+distributed-file-retrieval/
 │
 ├── client.py
 ├── tracker.py
+├── .gitignore
+├── README.md
 │
 ├── serverA/
 │   ├── server.py
 │   └── files/
-│       └── chunk1.bin
+│       └── distributed-demo.part1.bin
 │
-└── serverB/
-    ├── server.py
-    └── files/
-        └── chunk2.bin
-▶️ How It Works (Step‑by‑Step)
-1. Client → Tracker
-Client sends the hash of the chunk it wants.
+├── serverB/
+│   ├── server.py
+│   └── files/
+│       └── distributed-demo.part2.bin
+│
+└── screenshots/
+    ├── system-running.png
+    ├── client-retrieval.png
+    └── reconstructed-file.png
+```
 
-Example:
+`reconstructed-file.pdf` is generated when the client successfully retrieves both chunks and is excluded from Git using `.gitignore`.
 
-Code
-b13732c6...
-2. Tracker → Client
-Tracker checks its internal hash table and replies:
+---
 
-Code
-127.0.0.1 5000
-Meaning:
+## 🚀 Getting Started
 
-“Chunk 1 is on Server A.”
+### 1. Clone the Repository
 
-3. Client → Server A
-Client connects to the server returned by the tracker and downloads the chunk.
+```bash
+git clone https://github.com/iamprashik/distributed-file-retrieval.git
+```
 
-4. Repeat for chunk 2
-Tracker returns Server B → client downloads chunk 2.
+Navigate into the project:
 
-5. Client rebuilds the PDF
-Chunks are concatenated in order and written to:
+```bash
+cd distributed-file-retrieval
+```
 
-Code
-output.pdf
-🛠️ Running the System
-Open three terminals for the servers and tracker, and one for the client.
+No additional dependencies need to be installed.
 
-1. Start the Tracker
-Code
+---
+
+### 2. Start the Tracker
+
+Open the first terminal:
+
+```bash
 python tracker.py
-2. Start Server A
-Code
-cd serverA
-python server.py
-3. Start Server B
-Code
-cd serverB
-python server.py
-4. Run the Client
-Code
+```
+
+The tracker should start on:
+
+```text
+127.0.0.1:6000
+```
+
+---
+
+### 3. Start Server A
+
+Open a second terminal:
+
+```bash
+python serverA/server.py
+```
+
+Server A runs on:
+
+```text
+127.0.0.1:5000
+```
+
+and stores the first file chunk.
+
+---
+
+### 4. Start Server B
+
+Open a third terminal:
+
+```bash
+python serverB/server.py
+```
+
+Server B runs on:
+
+```text
+127.0.0.1:5001
+```
+
+and stores the second file chunk.
+
+---
+
+### 5. Run the Client
+
+Open a fourth terminal:
+
+```bash
 python client.py
-If everything is correct, you’ll see:
+```
 
-Code
-Tracker says: 127.0.0.1 5000
-Received 9523 bytes
-Tracker says: 127.0.0.1 5001
-Received 9524 bytes
-Wrote reassembled file to output.pdf
-🧪 Example Output
-Code
-Client sent hash to tracker: b13732c6...
-Tracker returned: 127.0.0.1 5000
-Server response: gotfile
-Received 9523 bytes
+The client will:
 
-Client sent hash to tracker: 9d64b30c...
-Tracker returned: 127.0.0.1 5001
-Server response: gotfile
-Received 9524 bytes
+1. Ask the tracker for Chunk 1's location
+2. Download Chunk 1 from Server A
+3. Ask the tracker for Chunk 2's location
+4. Download Chunk 2 from Server B
+5. Combine both binary chunks
+6. Generate `reconstructed-file.pdf`
 
-Reassembled file written to output.pdf
-Feature	OLD PART	NEW PART
-Client knows server IPs	✔ Yes	❌ No
-Tracker exists	❌ No	✔ Yes
-Client → Server directly	✔ Yes	❌ No
-Client → Tracker → Server	❌ No	✔ Yes
-Scalable architecture	❌ Limited	✔ Much better
-Realistic distributed design	❌ No	✔ Yes
-This model is a strict upgrade of the old one.
-It keeps all functionality but adds a tracker, making the system more modular and closer to real distributed systems.
+A successful run ends with:
 
-🎯 Learning Outcomes
-By completing this project, you learn:
+```text
+[REASSEMBLY] Combining downloaded chunks...
 
-How trackers coordinate distributed systems
+[SUCCESS] File reconstructed successfully.
+Output: reconstructed-file.pdf
+```
 
-How to implement content‑addressable storage
+---
 
-How to transfer binary data over sockets
+## 🧠 What I Learned
 
-How to design modular, scalable architectures
+Building this project helped me gain practical experience with:
 
-How BitTorrent‑style systems locate file pieces
+* Distributed system architecture
+* TCP socket programming
+* Client-server communication
+* Designing a tracker-based discovery mechanism
+* SHA-256 hashing
+* Content-based file identification
+* Binary data transmission
+* Working with multiple network services
+* File chunking and reconstruction
+* Coordinating communication between distributed components
+
+It also helped demonstrate the separation between **resource discovery** and **resource transfer**: the tracker locates the data, while the file servers deliver it directly to the client.
+
+---
+
+## 🔮 Future Improvements
+
+* Dynamically register servers and chunks with the tracker
+* Verify downloaded chunks against their SHA-256 hashes on the client
+* Support files containing any number of chunks
+* Download chunks concurrently from multiple servers
+* Add automatic file splitting
+* Add server failure handling and retry logic
+* Replicate chunks across multiple servers for fault tolerance
+* Support multiple simultaneous clients
+* Replace hard-coded network configuration with configuration files
+* Add a graphical or web-based interface
+
+---
+
+## 👨‍💻 Author
+
+**Prashik Koirala**
+
+[LinkedIn](https://www.linkedin.com/in/prashik-koirala-b6a64b3b0/) • [GitHub](https://github.com/iamprashik) • [Email](mailto:iamprashikkoirala@gmail.com)
