@@ -3,8 +3,8 @@ from socket import *
 TRACKER_HOST = "127.0.0.1"
 TRACKER_PORT = 6000
 
-part1 = "b13732c67903031abcd006a4c02bc4fe778692d2d640758cea93846997b2a367"
-part2 = "9d64b30c3d2047a1c0c77733134491c8a2dddc9354997038244ea9bd41bfc42f"
+part1 = "67fe4ecc5ef935d80e5a71ea1e22ade75344da4ae7187e9fda9fbb00f86de629"
+part2 = "ec4d161d1bc1f007c4ac0ef807850a5fc43b16572a2ec8d2fdc836ac4ef54b1a"
 
 
 def ask_tracker_for_server(part_hash):
@@ -45,36 +45,67 @@ def download_chunk(host, port, part_hash):
             print(f"Received {len(chunk_data)} bytes from {host}:{port}")
             return bytes(chunk_data)
 
-        else:
-            print("Server does not have the file.")
-            return None
+        print("Server does not have the file.")
+        return None
 
     finally:
         s.close()
 
 
 def main():
+    print("\n[DISTRIBUTED FILE RETRIEVAL CLIENT]\n")
+
     finaldata = bytearray()
 
-    # Chunk 1
+    print("[TRACKER] Looking up Chunk 1...")
     server_info = ask_tracker_for_server(part1)
+
     if server_info is None:
         return
-    chunk1 = download_chunk(server_info[0], server_info[1], part1)
+
+    print(f"[FOUND] Chunk 1 -> {server_info[0]}:{server_info[1]}")
+    print("[DOWNLOAD] Retrieving Chunk 1...")
+
+    chunk1 = download_chunk(
+        server_info[0],
+        server_info[1],
+        part1
+    )
+
+    if chunk1 is None:
+        return
+
     finaldata.extend(chunk1)
+    print("[SUCCESS] Chunk 1 received\n")
 
-    # Chunk 2
+    print("[TRACKER] Looking up Chunk 2...")
     server_info = ask_tracker_for_server(part2)
+
     if server_info is None:
         return
-    chunk2 = download_chunk(server_info[0], server_info[1], part2)
-    finaldata.extend(chunk2)
 
-    # Write final PDF
-    with open("output.pdf", "wb") as f:
+    print(f"[FOUND] Chunk 2 -> {server_info[0]}:{server_info[1]}")
+    print("[DOWNLOAD] Retrieving Chunk 2...")
+
+    chunk2 = download_chunk(
+        server_info[0],
+        server_info[1],
+        part2
+    )
+
+    if chunk2 is None:
+        return
+
+    finaldata.extend(chunk2)
+    print("[SUCCESS] Chunk 2 received\n")
+
+    print("[REASSEMBLY] Combining downloaded chunks...")
+
+    with open("reconstructed-file.pdf", "wb") as f:
         f.write(finaldata)
 
-    print("Reassembled file written to output.pdf")
+    print("\n[SUCCESS] File reconstructed successfully.")
+    print("Output: reconstructed-file.pdf")
 
 
 if __name__ == "__main__":
